@@ -4,19 +4,22 @@ from playwright.async_api import async_playwright, Page, Browser
 import random
 import string
 from datetime import datetime
+import re
 
 class TestWishlistWorkflow:
     """Simplified test based on actual HTML structure"""
 
     @pytest.fixture(scope="session")
     async def browser_setup(self):
+        """Set up a single browser instance for all tests in the session."""
         async with async_playwright() as p:
             browser = await p.chromium.launch(headless=False, slow_mo=1000)
             yield browser
             await browser.close()
     
     @pytest.fixture
-    async def page(self, browser_setup):
+    async def page(self, browser_setup: Browser):
+        """Provide a new page for each test."""
         context = await browser_setup.new_context()
         page = await context.new_page()
         yield page
@@ -24,19 +27,17 @@ class TestWishlistWorkflow:
 
     async def test_wishlist_workflow_simple(self, page: Page):
         """Simple wishlist workflow test"""
+        print("=== SIMPLE WISHLIST WORKFLOW TEST ===")
+        
         try:
-            print("=== SIMPLE WISHLIST WORKFLOW TEST ===")
-            
             print("1. Navigating to homepage...")
             await page.goto("https://mostar.api.demo.ch.melon.market/")
             await page.wait_for_load_state("networkidle")
             await page.wait_for_timeout(3000)
-            
             await page.screenshot(path="screenshots/01_homepage.png")
-            print("    Homepage loaded")
+            print("    Homepage loaded")
 
-            print("2. Finding wishlist elements...")
-            
+            print("2. Finding and clicking wishlist elements...")
             wishlist_selectors = [
                 "span.bewerben:has-text('Wishlist')",
                 "span[class*='bewerben']", 
@@ -44,84 +45,72 @@ class TestWishlistWorkflow:
                 "*:has-text('Wishlist')"
             ]
             
-            wishlist_elements = []
+            first_wishlist = None
             for selector in wishlist_selectors:
                 try:
                     elements = await page.query_selector_all(selector)
-                    visible_elements = []
-                    for el in elements:
-                        if await el.is_visible():
-                            visible_elements.append(el)
-                    
+                    visible_elements = [el for el in elements if await el.is_visible()]
                     if visible_elements:
-                        wishlist_elements = visible_elements
-                        print(f"    Found {len(visible_elements)} wishlist elements using: {selector}")
+                        first_wishlist = visible_elements[0]
+                        print(f" Found and using a wishlist element with selector: {selector}")
                         break
-                except Exception as e:
-                    print(f"   Selector failed: {selector} - {e}")
+                except Exception:
                     continue
             
-            if not wishlist_elements:
-                print("    No wishlist elements found")
-                await self.debug_page_structure(page)
-                return False
+            if not first_wishlist:
+                print(" No visible wishlist elements found. Exiting test.")
+                pytest.fail("Failed to find a visible wishlist element.")
 
-
-            print("3. Clicking first wishlist element...")
-            first_wishlist = wishlist_elements[0]
-            
             await first_wishlist.evaluate("el => el.style.backgroundColor = 'yellow'")
             await page.wait_for_timeout(1000)
-            
-
             await first_wishlist.click()
             await page.wait_for_timeout(2000)
-            
             await page.screenshot(path="screenshots/02_wishlist_clicked.png")
-            print("    Wishlist element clicked")
+            print(" Wishlist element clicked")
 
-            print("4. Looking for wishlist panel...")
-            
-            panel_found = await self.find_wishlist_panel(page)
-            
-            if not panel_found:
-                print("    Wishlist panel not clearly detected, but continuing...")
+            print("3. Looking for wishlist panel...")
+            await self.find_wishlist_panel(page)
 
-            print("5. Looking for Apply button...")
+            print("4. Finding and clicking Apply button to open a new page...")
+            new_page = await self.find_and_click_apply(page)
+            if not new_page:
+                print(" Test failed: Could not click Apply button or open a new page.")
+                await page.screenshot(path="screenshots/error_apply_failed.png", full_page=True)
+                pytest.fail("Failed to navigate to the application form.")
+
+            page = new_page
+            await page.bring_to_front()
+
+            print("5. Verifying URL and form elements on the new page...")
+            await page.wait_for_url(re.compile("form/application/new"), timeout=10000)
             
-            apply_clicked = await self.find_and_click_apply(page)
-            
-            if apply_clicked:
-                print("    Apply button clicked successfully")
-                await page.screenshot(path="screenshots/03_apply_clicked.png", full_page=True)
-                
-                await page.wait_for_timeout(3000)
-                current_url = page.url
-                print(f"   Current URL after Apply: {current_url}")
-                
-                if "form" in current_url.lower() or "application" in current_url.lower():
-                    print("    Successfully navigated to application form!")
-                    return True
-                else:
-                    form_elements = await page.query_selector_all("form, input[type='text'], input[type='email']")
-                    if form_elements:
-                        print("    Form elements found on page!")
-                        return True
-                    else:
-                        print("    Apply clicked but form not clearly detected")
-                        return True  
-            else:
-                print("    Apply button not found or not clickable")
-                return False
-                
+            print(" Successfully navigated to application form!")
+            await page.screenshot(path="screenshots/03_form_page_loaded.png", full_page=True)
+
+            print("6. Looking for Start button...")
+            start_btn = page.locator("#start-application-btn")
+            await start_btn.wait_for(state="visible", timeout=5000)
+            await page.screenshot(path="screenshots/04_start_button.png", full_page=True)
+            print(" Start button visible")
+
+            await start_btn.click()
+            await page.wait_for_timeout(3000)
+            print(" Start button clicked")
+
+            print("7. Verifying form started...")
+            form_field = page.locator("input, textarea, select").first
+            await form_field.wait_for(state="visible", timeout=5000)
+            await page.screenshot(path="screenshots/05_form_started.png", full_page=True)
+            print(" Application form started successfully")
+
         except Exception as e:
-            await page.screenshot(path="screenshots/error.png")
-            print(f"Test failed: {str(e)}")
-            return False
+            await page.screenshot(path="screenshots/error_final.png", full_page=True)
+            print(f"Test failed with an exception: {e}")
+            raise
 
     async def debug_page_structure(self, page: Page):
         """Debug helper to understand page structure"""
-        print("   🔍 DEBUGGING PAGE STRUCTURE:")
+        print("   DEBUGGING PAGE STRUCTURE:")
         
         wishlist_text_elements = await page.query_selector_all("*")
         wishlist_matches = []
@@ -133,22 +122,21 @@ class TestWishlistWorkflow:
                     tag_name = await element.evaluate("el => el.tagName")
                     class_name = await element.get_attribute("class") or "no-class"
                     is_visible = await element.is_visible()
-                    wishlist_matches.append(f"    {tag_name}.{class_name} (visible: {is_visible}): '{text.strip()[:50]}'")
+                    wishlist_matches.append(f" {tag_name}.{class_name} (visible: {is_visible}): '{text.strip()[:50]}'")
             except:
                 continue
         
-        print(f"   Elements containing 'Wishlist': {len(wishlist_matches)}")
+        print(f"  Elements containing 'Wishlist': {len(wishlist_matches)}")
         for match in wishlist_matches[:5]:
             print(match)
         
         tables = await page.query_selector_all("table")
-        print(f"   Tables found: {len(tables)}")
+        print(f"  Tables found: {len(tables)}")
         
-
         buttons = await page.query_selector_all("button")
         spans = await page.query_selector_all("span")
-        print(f"   Buttons found: {len(buttons)}")
-        print(f"   Spans found: {len(spans)}")
+        print(f" Buttons found: {len(buttons)}")
+        print(f" Spans found: {len(spans)}")
 
     async def find_wishlist_panel(self, page: Page):
         """Find the wishlist panel that should appear"""
@@ -165,93 +153,57 @@ class TestWishlistWorkflow:
                 try:
                     element = await page.query_selector(selector)
                     if element and await element.is_visible():
-                        print(f"    Wishlist panel found: {selector}")
+                        print(f" Wishlist panel found: {selector}")
                         return True
                 except:
                     continue
             
             apply_elements = await page.query_selector_all("*:has-text('Apply')")
-            visible_apply = []
-            for el in apply_elements:
-                if await el.is_visible():
-                    visible_apply.append(el)
+            visible_apply = [el for el in apply_elements if await el.is_visible()]
             
             if visible_apply:
-                print(f"    Apply elements found: {len(visible_apply)}")
+                print(f" Apply elements found: {len(visible_apply)}")
                 return True
             
-            print("    Wishlist panel not clearly detected")
+            print(" Wishlist panel not clearly detected")
             return False
             
         except Exception as e:
-            print(f"   Error finding panel: {e}")
+            print(f"  Error finding panel: {e}")
             return False
 
     async def find_and_click_apply(self, page: Page):
-        """Find and click the Apply button"""
+        """Find and click the Apply button, waiting for a new page."""
         try:
             apply_selectors = [
                 ".button:has-text('Apply')",
                 "[data-v-21a4b90e].button:has-text('Apply')", 
                 "div.button:has-text('Apply')",
-                "*:has-text('Apply')",
-                "button:has-text('Apply')"
+                "button:has-text('Apply')",
+                "*[class*='button']:has-text('Apply')"
             ]
             
             for selector in apply_selectors:
-                try:
-                    elements = await page.query_selector_all(selector)
-                    for element in elements:
-                        if await element.is_visible():
-                            print(f"   ✓ Apply button found: {selector}")
-                            
-                            await element.evaluate("el => el.style.border = '3px solid red'")
-                            await page.wait_for_timeout(1000)
-                            
-                            current_url = page.url
-                            
+                elements = await page.query_selector_all(selector)
+                for element in elements:
+                    if await element.is_visible():
+                        print(f"  Apply button found: {selector}")
+                        await element.evaluate("el => el.style.border = '3px solid red'")
+                        await page.wait_for_timeout(1000)
+                        
+                        async with page.context.expect_page() as new_page_info:
                             await element.click()
-                            await page.wait_for_timeout(3000)
-                            
-                            new_url = page.url
-                            if new_url != current_url:
-                                print(f"    Navigation occurred: {new_url}")
-                                return True
-                            else:
-
-                                form_elements = await page.query_selector_all("form, input")
-                                if form_elements:
-                                    print("    Form appeared on current page")
-                                    return True
-                                else:
-                                    print("    Clicked but no clear result")
-                                    return True 
-                except Exception as e:
-                    print(f"   Selector failed: {selector} - {e}")
-                    continue
+                        
+                        new_page = await new_page_info.value
+                        print("    New page/tab opened successfully.")
+                        return new_page
             
-            print("    No clickable Apply button found")
-            
-
-            all_apply = await page.query_selector_all("*:has-text('Apply')")
-            print(f"   Debug: Found {len(all_apply)} elements containing 'Apply'")
-            
-            for i, el in enumerate(all_apply[:3]):
-                try:
-                    tag = await el.evaluate("el => el.tagName")
-                    classes = await el.get_attribute("class") or "no-class"
-                    visible = await el.is_visible()
-                    text = await el.text_content()
-                    print(f"   Apply element {i}: {tag}.{classes} (visible: {visible}) - '{text.strip()}'")
-                except:
-                    continue
-            
-            return False
+            print(" No clickable Apply button found or new page failed to open.")
+            return None
             
         except Exception as e:
-            print(f"   Error finding Apply button: {e}")
-            return False
-
+            print(f"  Error finding or clicking Apply button: {e}")
+            return None
 
 if __name__ == "__main__":
     async def run_simple_test():
@@ -262,16 +214,12 @@ if __name__ == "__main__":
             test_suite = TestWishlistWorkflow()
             
             try:
-                success = await test_suite.test_wishlist_workflow_simple(page)
-                
-                if success:
-                    print("\n WISHLIST WORKFLOW TEST COMPLETED SUCCESSFULLY!")
-                else:
-                    print("\n WISHLIST WORKFLOW TEST FAILED")
-                
-                print(" Screenshots saved in screenshots/ directory")
-                
+                await test_suite.test_wishlist_workflow_simple(page)
+                print("\n WISHLIST WORKFLOW TEST COMPLETED SUCCESSFULLY!")
+            except Exception as e:
+                print(f"\n WISHLIST WORKFLOW TEST FAILED: {e}")
             finally:
+                print(" Screenshots saved in screenshots/ directory")
                 print("\nKeeping browser open for 10 seconds to review results...")
                 await page.wait_for_timeout(10000)
                 await browser.close()
