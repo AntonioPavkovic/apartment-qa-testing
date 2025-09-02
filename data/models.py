@@ -35,7 +35,9 @@ class HouseholdData:
     """Household information data structure"""
     household_type: Optional[str] = None
     has_pets: Optional[bool] = None
+    pets_type: Optional[str] = "Golden Retiever"
     has_music_instruments: Optional[bool] = None
+    music_instruments_type: Optional[str] = "Guitar"
     is_smoker: Optional[bool] = None
 
     relocation_reason: Optional[str] = None
@@ -88,3 +90,46 @@ class TestResult:
     screenshot_paths: list = field(default_factory=list)
     apartment_details: Optional[ApartmentDetails] = None
     execution_time: Optional[float] = None
+
+@dataclass
+class PersonData:
+    """Data model for individual person information"""
+    # General info
+    salutation: Optional[str] = None
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    date_of_birth: Optional[str] = None
+    place_of_birth: Optional[str] = None
+    civil_status: Optional[str] = None
+    nationality: Optional[str] = None
+    residency_status: Optional[str] = None
+    living_in_switzerland_since: Optional[str] = None
+    type_of_tenant: Optional[str] = None
+    
+    # Contact info
+    phone_number: Optional[str] = None
+    business_phone: Optional[str] = None
+    email: Optional[str] = None
+    
+    # Housing situation
+    current_rental_situation: Optional[str] = None
+    street_and_number: Optional[str] = None
+    post_code: Optional[str] = None
+    city: Optional[str] = None
+    country: Optional[str] = None
+    move_in_date: Optional[str] = None
+    civil_law_residence: Optional[bool] = None
+    relocation_last_3_years: Optional[bool] = None
+    community_member: Optional[bool] = None
+    
+    # Employment
+    education: Optional[str] = None
+    employment_status: Optional[str] = None
+    gross_annual_income: Optional[str] = None
+    annual_taxable_income: Optional[str] = None
+    taxable_assets: Optional[str] = None
+    
+    # Insurance/Credit
+    credit_check_type: Optional[str] = None
+    personal_liability_insurance: Optional[bool] = None
+    household_insurance: Optional[bool] = None

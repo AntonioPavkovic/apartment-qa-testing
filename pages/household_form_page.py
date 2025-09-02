@@ -60,19 +60,31 @@ class HouseholdFormPage:
     async def _fill_general_section(self, household_data: HouseholdData) -> None:
         """Fill the General section"""
         self.logger.info("Filling General section...")
-        
+
         if household_data.household_type:
-            await self._select_dropdown_option(Selectors.HOUSEHOLD_TYPE_DROPDOWN,  Selectors.HOUSEHOLD_TYPE_INPUT, household_data.household_type)
-        
+            await self._select_dropdown_option(
+                Selectors.HOUSEHOLD_TYPE_DROPDOWN,
+                Selectors.HOUSEHOLD_TYPE_INPUT,
+                household_data.household_type
+            )
 
         if household_data.has_pets is not None:
             await self._click_yes_no_radio("pets", household_data.has_pets)
-        
+            pets_type = getattr(household_data, "pets_type", None)
+            if household_data.has_pets and pets_type:
+                await self.page.wait_for_selector("input#field-pets_type", state="visible", timeout=5000)
+                await self.interactor.fill_field_safely("input#field-pets_type", pets_type)
+
         if household_data.has_music_instruments is not None:
             await self._click_yes_no_radio("music_instruments", household_data.has_music_instruments)
+            music_type = getattr(household_data, "music_instruments_type", None)
+            if household_data.has_music_instruments and music_type:
+                await self.page.wait_for_selector("input#field-music_instruments_type", state="visible", timeout=5000)
+                await self.interactor.fill_field_safely("input#field-music_instruments_type", music_type)
 
         if household_data.is_smoker is not None:
             await self._click_yes_no_radio("smoking", household_data.is_smoker)
+
     
     async def _fill_moving_information(self, household_data: HouseholdData) -> None:
         """Fill Moving Information section"""
@@ -161,7 +173,7 @@ class HouseholdFormPage:
             await self.page.wait_for_timeout(1000)
             
             # Wait for dropdown items to appear
-            await self.page.wait_for_selector("ul.select-dropdown-items-wrapper", timeout=TestConfig.DEFAULT_TIMEOUT)
+            await self.page.wait_for_selector("ul.select-dropdown-items-wrapper li", state="visible", timeout=TestConfig.DEFAULT_TIMEOUT)
             
             # Try to select by data-value attribute instead of ID (more reliable)
             data_value = self._map_value_to_data_value(value)
