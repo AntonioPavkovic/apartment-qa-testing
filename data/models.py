@@ -31,9 +31,36 @@ class ParkingRequirements:
     reason: Optional[str] = None
 
 @dataclass
+class HouseholdData:
+    """Household information data structure"""
+    household_type: Optional[str] = None
+    has_pets: Optional[bool] = None
+    has_music_instruments: Optional[bool] = None
+    is_smoker: Optional[bool] = None
+
+    relocation_reason: Optional[str] = None
+    desired_move_date: Optional[str] = None
+    mailbox_label: Optional[str] = None
+
+    security_deposit_type: Optional[str] = None
+    income_rent_ratio: Optional[bool] = None
+    iban: Optional[str] = None
+    bank_name: Optional[str] = None
+    account_owner: Optional[str] = None
+
+    motivation: Optional[str] = None
+    participation_ideas: Optional[str] = None
+    relation_to_cooperative: Optional[str] = None
+    relation_type: Optional[str] = None
+
+    object_found_on: Optional[str] = None
+    remarks: Optional[str] = None
+
+@dataclass
 class FormData:
     """Complete form data structure"""
     parking: ParkingRequirements = field(default_factory=ParkingRequirements)
+    household: HouseholdData = field(default_factory=HouseholdData)
     wants_car_sharing: bool = False
     wants_motorbike_parking: bool = False
     motorbike_spaces: int = 0

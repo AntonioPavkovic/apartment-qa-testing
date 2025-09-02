@@ -13,6 +13,7 @@ from pages.components.wishlist import WishlistComponent
 from utils.element_interactor import ElementInteractor
 from utils.logging import TestLogger
 from utils.screenshot_manager import ScreenshotManager
+from pages.household_form_page import HouseholdFormPage
 
 class TestCompleteApartmentWorkflow:
     """Main test class orchestrating the complete apartment application workflow"""
@@ -107,25 +108,40 @@ class TestCompleteApartmentWorkflow:
             return application_page
     
     async def _execute_form_completion_phase(self, page: Page) -> None:
-        """Execute form filling and submission"""
-        async with self.logger.log_phase("PHASE 3: Application Form Completion"):
+        """Execute form filling and submission for both Object and Household steps"""
+        
+        async with self.logger.log_phase("PHASE 3A: Object Form Completion"):
             interactor = ElementInteractor(page, self.logger)
             form_page = ApplicationFormPage(page, interactor, self.screenshot_manager, self.logger)
             
             await form_page.start_application_process()
-            
             form_data = TestDataFactory.create_realistic_applicant()
             await form_page.fill_form(form_data)
-
             await form_page.submit_form()
+            
             success = await form_page.verify_submission()
-            
-            await self.screenshot_manager.capture(page, "05_application_submitted", full_page=True)
-            
             if not success:
-                raise ApplicationFormError("Form submission verification failed")
+                raise ApplicationFormError("Object form submission verification failed")
             
-            self.logger.info("Application submitted successfully")
+            await self.screenshot_manager.capture(page, "05_object_form_submitted", full_page=True)
+            self.logger.info("Object form submitted successfully")
+        
+        async with self.logger.log_phase("PHASE 3B: Household Form Completion"):
+            interactor = ElementInteractor(page, self.logger)
+            household_page = HouseholdFormPage(page, interactor, self.screenshot_manager, self.logger)
+            
+            if not await household_page.verify_household_form_loaded():
+                raise ApplicationFormError("Household form did not load correctly")
+
+            await household_page.fill_household_form(form_data.household)
+            await household_page.submit_household_form()
+            
+            success = await household_page.verify_household_submission()
+            if not success:
+                raise ApplicationFormError("Household form submission verification failed")
+            
+            await self.screenshot_manager.capture(page, "06_household_form_submitted", full_page=True)
+            self.logger.info("Household form submitted successfully")
 
 
 if __name__ == "__main__":

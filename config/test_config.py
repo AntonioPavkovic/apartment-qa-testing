@@ -32,6 +32,39 @@ class TestConfig:
 class Selectors:
     """CSS selectors organized by component"""
 
+    HOUSEHOLD_TYPE_DROPDOWN = "div#toggle-field-household_type"
+    HOUSEHOLD_TYPE_INPUT = "input#field-household_type"
+
+    PETS_YES = "li#pets-true"
+    PETS_NO = "li#pets-false"
+    MUSIC_INSTRUMENTS_YES = "li#music_instruments-true"
+    MUSIC_INSTRUMENTS_NO = "li#music_instruments-false"
+    SMOKING_YES = "li#smoking-true"
+    SMOKING_NO = "li#smoking-false"
+
+    RELOCATION_REASON_DROPDOWN = "div#toggle-field-relocation_reason"
+    MOVING_DATE_INPUT = "input#field-moving_date"
+    MAILBOX_LABEL_INPUT = "input#field-mailbox_label"
+
+    SECURITY_DEPOSIT_RADIO = "li#securities_options-deposit"
+    INSURANCE_SOLUTION_RADIO = "li#securities_options-insurance"
+    INCOME_RATIO_YES = "li#income_rent_ratio-true"
+    INCOME_RATIO_NO = "li#income_rent_ratio-false"
+
+    IBAN_INPUT = "input#field-iban"
+    BANK_NAME_INPUT = "input#field-bank_name"
+    ACCOUNT_OWNER_INPUT = "input#field-account_owner"
+
+    MOTIVATION_INPUT = "input#field-motivation"
+    PARTICIPATION_TEXTAREA = "textarea#field-engagement"
+    RELATION_DROPDOWN = "div#toggle-field-relation_to_project"
+    RELATION_TYPE_DROPDOWN = "div#toggle-field-relation_to_project_detail"
+
+    SOURCE_DROPDOWN = "div#toggle-field-source"
+    REMARKS_TEXTAREA = "textarea#field-remarks"
+
+    BACK_BUTTON = "div#application-btn-back"
+
     APARTMENT_ROWS = [
         "tr[data-apartment-id]",
         "tr:has(td:has-text('Available'))",
