@@ -94,24 +94,22 @@ class TestResult:
 @dataclass
 class PersonData:
     """Data model for individual person information"""
-    # General info
     salutation: Optional[str] = None
     first_name: Optional[str] = None
     last_name: Optional[str] = None
     date_of_birth: Optional[str] = None
     place_of_birth: Optional[str] = None
+    place_of_citizenship: Optional[str] = None
     civil_status: Optional[str] = None
     nationality: Optional[str] = None
     residency_status: Optional[str] = None
     living_in_switzerland_since: Optional[str] = None
     type_of_tenant: Optional[str] = None
     
-    # Contact info
     phone_number: Optional[str] = None
     business_phone: Optional[str] = None
     email: Optional[str] = None
     
-    # Housing situation
     current_rental_situation: Optional[str] = None
     street_and_number: Optional[str] = None
     post_code: Optional[str] = None
@@ -121,15 +119,31 @@ class PersonData:
     civil_law_residence: Optional[bool] = None
     relocation_last_3_years: Optional[bool] = None
     community_member: Optional[bool] = None
+
+    current_landlord: Optional[str] = None
+    landlord_contact_person: Optional[str] = None
+    landlord_contact_phone: Optional[str] = None
+    landlord_contact_email: Optional[str] = None
+    monthly_gross_rent: Optional[int] = None
+    contract_terminated_by: Optional[str] = None
     
-    # Employment
+
     education: Optional[str] = None
-    employment_status: Optional[str] = None
+    employment_status: Optional[str] = "Retired"
     gross_annual_income: Optional[str] = None
     annual_taxable_income: Optional[str] = None
     taxable_assets: Optional[str] = None
     
-    # Insurance/Credit
+    company_start_date: Optional[str] = None
+    employment_terminated: Optional[bool] = False
+    company_name: Optional[str] = None
+    company_street: Optional[str] = None
+    company_postcode: Optional[str] = None
+    company_city: Optional[str] = None
+    company_contact_person: Optional[str] = None
+    company_contact_phone: Optional[str] = None
+    company_contact_email: Optional[str] = None
+    
     credit_check_type: Optional[str] = None
     personal_liability_insurance: Optional[bool] = None
     household_insurance: Optional[bool] = None

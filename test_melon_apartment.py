@@ -10,6 +10,7 @@ from exceptions.test_exceptions import ApplicationFormError, NavigationError
 from pages.apartment_listing_page import ApartmentListingPage
 from pages.application_form_page import ApplicationFormPage
 from pages.components.wishlist import WishlistComponent
+from pages.people_form_page import PeopleFormPage
 from utils.element_interactor import ElementInteractor
 from utils.logging import TestLogger
 from utils.screenshot_manager import ScreenshotManager
@@ -142,7 +143,18 @@ class TestCompleteApartmentWorkflow:
             
             await self.screenshot_manager.capture(page, "06_household_form_submitted", full_page=True)
             self.logger.info("Household form submitted successfully")
+        
+        async with self.logger.log_phase("PHASE 3C: People Form Completion"):
+            interactor = ElementInteractor(page, self.logger)
+            people_page = PeopleFormPage(page, interactor, self.screenshot_manager, self.logger)
 
+            family_data = TestDataFactory.create_family_with_child_data()
+
+            await people_page.fill_people_form(family_data)
+            await people_page.submit_people_form()
+
+            await self.screenshot_manager.capture(page, "07_people_form_submitted", full_page=True)
+            self.logger.info("People form submitted successfully")
 
 if __name__ == "__main__":
     async def run_complete_workflow_test():
