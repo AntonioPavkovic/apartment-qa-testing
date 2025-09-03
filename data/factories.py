@@ -220,7 +220,7 @@ class TestDataFactory:
         """Base template for a valid child with required fields"""
         timestamp = int(time.time())
         return PersonData(
-            salutation="Miss",
+            salutation="Ms.",
             first_name="BaseChild",
             last_name="Template",
             date_of_birth="10.09.2015",

@@ -57,12 +57,50 @@ class PeopleFormPage:
                 await self._fill_person_data(people_data[2], person_index=2)
                 await self._save_current_person()
             
+            # Add navigation to summary page
+            await self._navigate_to_summary()
+            
             await self.screenshot_manager.capture(self.page, "people_form_filled", full_page=True)
             self.logger.info("People form completed")
             
         except Exception as e:
             await self.screenshot_manager.capture_error(self.page, "people_form_filling")
             raise ApplicationFormError(f"Error filling people form: {e}")
+
+    async def _navigate_to_summary(self) -> None:
+        """Navigate from people form to summary page"""
+        self.logger.info("Looking for Continue/Next button to navigate to summary...")
+        
+        try:
+            # Look for navigation buttons
+            continue_selectors = [
+                "#application-btn-next",
+                ".btn:has-text('Continue')",
+                ".btn:has-text('Next')", 
+                ".btn.btn-next",
+                "button:has-text('Continue')",
+                "button:has-text('Next')",
+                ".navigation-buttons .btn:not(.btn-previous)"
+            ]
+            
+            continue_button = None
+            for selector in continue_selectors:
+                continue_button = await self.page.query_selector(selector)
+                if continue_button and await continue_button.is_visible():
+                    self.logger.info(f"Found continue button: {selector}")
+                    break
+            
+            if continue_button:
+                await continue_button.scroll_into_view_if_needed()
+                await continue_button.click()
+                self.logger.info("Clicked continue button to navigate to summary")
+                await self.page.wait_for_timeout(3000)  # Wait for navigation
+            else:
+                self.logger.warning("No continue button found - summary page may load automatically")
+                await self.page.wait_for_timeout(2000)  # Wait in case it loads automatically
+                
+        except Exception as e:
+            self.logger.warning(f"Could not find continue button: {e}")
     
     async def _debug_page_state(self) -> None:
         """Debug method to understand the current page state"""
