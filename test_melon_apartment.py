@@ -11,7 +11,7 @@ from pages.apartment_listing_page import ApartmentListingPage
 from pages.application_form_page import ApplicationFormPage
 from pages.components.wishlist import WishlistComponent
 from pages.people_form_page import PeopleFormPage
-from pages.summary_form_page import SummaryFormPage  # Add this import
+from pages.summary_form_page import SummaryFormPage
 from utils.element_interactor import ElementInteractor
 from utils.logging import TestLogger
 from utils.screenshot_manager import ScreenshotManager
@@ -155,7 +155,6 @@ class TestCompleteApartmentWorkflow:
             await self.screenshot_manager.capture(page, "07_people_form_submitted", full_page=True)
             self.logger.info("People form submitted successfully")
 
-        # Add the new Summary Form phase
         async with self.logger.log_phase("PHASE 3D: Summary Form Completion"):
             summary_page = SummaryFormPage(page, self.screenshot_manager, self.logger)
             

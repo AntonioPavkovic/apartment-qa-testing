@@ -17,15 +17,63 @@ class SummaryFormPage:
         self.logger.info("Verifying summary page...")
         
         try:
-            await self.page.wait_for_selector("#field-agreement_penalty", timeout=TestConfig.DEFAULT_TIMEOUT)
-            await self.page.wait_for_selector("#application-btn-submit", timeout=TestConfig.DEFAULT_TIMEOUT)
+            await self.page.wait_for_selector("#apartment_agreement .af-position.active", timeout=TestConfig.DEFAULT_TIMEOUT)
             
-            self.logger.info("Summary page verified successfully")
-            return True
+            summary_indicators = [
+                "#field-agreement_penalty",
+                "#field-agreement_truth", 
+                "#field-agreement_privacy",
+                "h3:has-text('Summary')",
+                ".section-info-label:has-text('Summary')"
+            ]
             
+            found_indicator = False
+            for selector in summary_indicators:
+                try:
+                    await self.page.wait_for_selector(selector, timeout=2000)
+                    found_indicator = True
+                    self.logger.info(f"Found summary page indicator: {selector}")
+                    break
+                except:
+                    continue
+            
+            if found_indicator:
+                self.logger.info("Summary page verified successfully")
+                return True
+            else:
+                self.logger.error("No summary page indicators found")
+                return False
+                
         except Exception as e:
             self.logger.error(f"Error verifying summary page: {e}")
             return False
+    
+    async def debug_current_page(self) -> None:
+        """Debug what's currently on the page"""
+        self.logger.info("=== DEBUGGING CURRENT PAGE STATE ===")
+        
+        current_url = self.page.url
+        self.logger.info(f"Current URL: {current_url}")
+
+        title = await self.page.title()
+        self.logger.info(f"Page title: {title}")
+
+        steps = await self.page.query_selector_all(".af-steps")
+        for i, step in enumerate(steps):
+            class_list = await step.get_attribute("class")
+            text = await step.text_content()
+            self.logger.info(f"Step {i}: class='{class_list}', text='{text}'")
+        
+        sections = await self.page.query_selector_all(".section")
+        self.logger.info(f"Found {len(sections)} sections on page")
+        
+        checkboxes = await self.page.query_selector_all("input[type='checkbox']")
+        self.logger.info(f"Found {len(checkboxes)} checkboxes on page")
+        for i, checkbox in enumerate(checkboxes[:5]):
+            id_attr = await checkbox.get_attribute("id")
+            self.logger.info(f"Checkbox {i}: id='{id_attr}'")
+        
+        await self.screenshot_manager.capture_error(self.page, "summary_page_debug")
     
     async def fill_summary_form(self) -> None:
         """Fill out the summary page checkboxes and submit"""
@@ -33,6 +81,7 @@ class SummaryFormPage:
         
         try:
             if not await self.verify_summary_page_loaded():
+                await self.debug_current_page()
                 raise ApplicationFormError("Summary page did not load correctly")
             
             await self._check_required_agreements()
@@ -67,7 +116,6 @@ class SummaryFormPage:
                     else:
                         self.logger.info(f"Already checked: {description}")
                 else:
-                    # Try clicking the label if checkbox not directly clickable
                     label = await self.page.query_selector(f"label[for='{checkbox_id}']")
                     if label:
                         await label.click()
@@ -85,7 +133,6 @@ class SummaryFormPage:
         self.logger.info("Submitting final application...")
         
         try:
-            # Wait for any validation to complete
             await self.page.wait_for_timeout(1000)
             
             submit_button = await self.page.query_selector("#application-btn-submit")
@@ -95,8 +142,6 @@ class SummaryFormPage:
             await submit_button.scroll_into_view_if_needed()
             await submit_button.click()
             self.logger.info("Clicked submit button")
-            
-            # Wait for submission to complete
             await self.page.wait_for_timeout(3000)
             
         except Exception as e:
