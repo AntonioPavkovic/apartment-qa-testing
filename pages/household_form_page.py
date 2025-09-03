@@ -196,20 +196,24 @@ class HouseholdFormPage:
 
     def _map_value_to_data_value(self, value: str) -> str:
         """Map friendly values to actual dropdown data-value attributes"""
+        
+        # Standardize the input value for mapping
+        standardized_value = value.strip().lower().replace(' ', '_').replace('/', '_').replace('-', '_').replace('__', '_')
+
         household_type_mapping = {
-            "single person household": "single_person_household",
-            "couple household": "couple_household", 
-            "couple household with child": "couple_household_with_child",
-            "Single parent with child/ren": "single_parent_household",
-            "Flat-share": "flat_share",
-            "Other": "other_household"
+            "single_person_household": "single_person_household",
+            "couple_household": "couple_household", 
+            "couple_household_with_child": "couple_household_with_child",
+            "single_parent_with_child_ren": "single_parent_household",
+            "flat_share": "flat_share",
+            "other": "other_household"
         }
         
         relocation_reason_mapping = {
-            "Change of life situation": "change_in_life_situation",
+            "Change of life situation": "change_of_life_situation",
             "Change in income": "change_in_income_situation",
             "Change in the place of work": "change_of_place_of_work",
-            "Change in space requirements": "change_in_space requirement",
+            "Change in space requirements": "change_in_space_requirement",
             "Noise / Emissions": "noise_imissions",
             "Price/performance ratio": "price_performance_ratio",
             "Problems with janitor/administration": "problems_with_administration",
@@ -221,44 +225,33 @@ class HouseholdFormPage:
             "Fixed term tenancy": "fixed_term_tenancy",
             "Other": "other_relocation_reason"
         }
-        
-        # Add mappings for the cooperative relation dropdown
+            
         cooperative_relation_mapping = {
-            "Current tenant": "current_tenant",
-            "Child tenant": "child_tenant", 
-            "Voluntary member": "voluntary_member",
-            "No relation": "no_relation"
+            "current_tenant": "current_tenant",
+            "child_tenant": "tenant_child", 
+            "voluntary_member": "voluntary_members",
+            "no_relation": "no_relation"
         }
         
-        # Add mappings for the relation type dropdown
         relation_type_mapping = {
-            "Already living in the neighborhood": "already_living_neighborhood",
-            "Workplace in the neighborhood": "workplace_neighborhood",
-            "Caring for relatives in the neighborhood": "caring_relatives_neighborhood", 
-            "Children school/kindergarten in the neighborhood": "children_school_neighborhood"
+            "already_living_in_the_neighborhood": "already_living_neighborhood",
+            "workplace_in_the_neighborhood": "workplace_neighborhood",
+            "caring_for_relatives_in_the_neighborhood": "caring_relatives_neighborhood", 
+            "children_school_kindergarten_in_the_neighborhood": "children_school_neighborhood"
         }
         
-        # Add mappings for object source dropdown
         object_source_mapping = {
-            "Real estate platform (Newhome, Erstbezug, Homegate, ...)": "real_estate_platform",
-            "Project website": "project_website",
-            "Facebook": "facebook",
-            "Instagram": "instagram", 
-            "LinkedIn": "linkedin"
+            "real_estate_platform_(newhome,_erstbezug,_homegate,_...)": "real_estate_platform",
+            "project_website": "project_website",
+            "facebook": "facebook",
+            "instagram": "instagram", 
+            "linkedin": "linkedin"
         }
         
-        # Check all mappings
-        all_mappings = [
-            household_type_mapping, 
-            relocation_reason_mapping, 
-            cooperative_relation_mapping,
-            relation_type_mapping,
-            object_source_mapping
-        ]
+        all_mappings = {**household_type_mapping, **relocation_reason_mapping, **cooperative_relation_mapping, **relation_type_mapping, **object_source_mapping}
         
-        for mapping in all_mappings:
-            if value in mapping:
-                return mapping[value]
+        if standardized_value in all_mappings:
+            return all_mappings[standardized_value]
         
         return None
 
@@ -301,7 +294,7 @@ class HouseholdFormPage:
             
         except Exception as e:
             raise ElementInteractionError(f"Failed to select by text content: {e}")
-    
+
     async def submit_household_form(self) -> None:
         """Submit the household form"""
         self.logger.info("Submitting household form...")
@@ -315,10 +308,10 @@ class HouseholdFormPage:
             await self.page.wait_for_timeout(1000)
             await submit_button.evaluate("el => el.style.border = '3px solid red'")
             await self.page.wait_for_timeout(1000)
+
             await submit_button.click()
             
-            self.logger.info("Household form submitted")
-            await self.page.wait_for_timeout(3000)
+            self.logger.info("Household form submitted. Waiting for People form to load...")
             
         except Exception as e:
             await self.screenshot_manager.capture_error(self.page, "household_form_submission")
