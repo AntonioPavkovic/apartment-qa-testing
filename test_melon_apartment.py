@@ -11,6 +11,7 @@ from pages.apartment_listing_page import ApartmentListingPage
 from pages.application_form_page import ApplicationFormPage
 from pages.components.wishlist import WishlistComponent
 from pages.people_form_page import PeopleFormPage
+from pages.summary_form_page import SummaryFormPage  # Add this import
 from utils.element_interactor import ElementInteractor
 from utils.logging import TestLogger
 from utils.screenshot_manager import ScreenshotManager
@@ -109,7 +110,7 @@ class TestCompleteApartmentWorkflow:
             return application_page
     
     async def _execute_form_completion_phase(self, page: Page) -> None:
-        """Execute form filling and submission for both Object and Household steps"""
+        """Execute form filling and submission for all steps"""
         
         async with self.logger.log_phase("PHASE 3A: Object Form Completion"):
             interactor = ElementInteractor(page, self.logger)
@@ -149,12 +150,18 @@ class TestCompleteApartmentWorkflow:
             people_page = PeopleFormPage(page, interactor, self.screenshot_manager, self.logger)
 
             family_data = TestDataFactory.create_family_with_child_data()
-
             await people_page.fill_people_form(family_data)
-            await people_page.submit_people_form()
 
             await self.screenshot_manager.capture(page, "07_people_form_submitted", full_page=True)
             self.logger.info("People form submitted successfully")
+
+        # Add the new Summary Form phase
+        async with self.logger.log_phase("PHASE 3D: Summary Form Completion"):
+            summary_page = SummaryFormPage(page, self.screenshot_manager, self.logger)
+            
+            await summary_page.fill_summary_form()
+            
+            self.logger.info("Summary form and final application submitted successfully")
 
 if __name__ == "__main__":
     async def run_complete_workflow_test():
