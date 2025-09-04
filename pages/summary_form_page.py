@@ -100,6 +100,91 @@ class SummaryFormPage:
         except Exception as e:
             await self.screenshot_manager.capture_error(self.page, "summary_form_error")
             raise ApplicationFormError(f"Error completing summary form: {e}")
+
+    async def fill_summary_form_and_go_to_admin(self) -> None:
+        """Fill out the summary page, submit, and automatically navigate to admin panel"""
+        self.logger.info("Filling summary form and navigating to admin...")
+        
+        try:
+            thank_you_page = await self.page.query_selector(".thank-you-page")
+            if thank_you_page:
+                self.logger.info("Application already submitted - found thank you page, navigating to admin")
+                await self.screenshot_manager.capture(self.page, "08_already_submitted", full_page=True)
+                await self._navigate_to_admin_panel()
+                return
+            
+            if not await self.verify_summary_page_loaded():
+                await self.debug_current_page()
+                raise ApplicationFormError("Summary page did not load correctly")
+            
+            await self._check_required_agreements()
+            await self._submit_application()
+            await self._verify_submission_success()
+            
+            await self.screenshot_manager.capture(self.page, "08_application_submitted", full_page=True)
+            self.logger.info("Application submitted successfully")
+
+            await self.page.wait_for_timeout(3000)
+
+            success_page = await self.page.query_selector(".thank-you-page")
+            if success_page:
+                self.logger.info("Success page confirmed, navigating to admin panel...")
+                await self._navigate_to_admin_panel()
+            else:
+                self.logger.warning("Success page not detected, but continuing with admin navigation...")
+                await self._navigate_to_admin_panel()
+            
+        except Exception as e:
+            await self.screenshot_manager.capture_error(self.page, "summary_form_error")
+            raise ApplicationFormError(f"Error completing summary form and admin navigation: {e}")
+
+    async def _navigate_to_admin_panel(self) -> None:
+        """Navigate directly to admin panel after confirmation"""
+        self.logger.info("Automatically navigating to admin panel...")
+        
+        try:
+            await self.screenshot_manager.capture(self.page, "08_success_page_before_admin", full_page=True)
+            
+            admin_url = "https://mostar.demo.ch.melon.market/"
+            self.logger.info(f"Navigating from success page to admin URL: {admin_url}")
+            await self.page.goto(admin_url)
+
+            await self.page.wait_for_load_state('domcontentloaded', timeout=15000)
+            await self.page.wait_for_timeout(3000)
+
+            await self.screenshot_manager.capture(self.page, "09_auto_admin_navigation", full_page=True)
+            
+            self.logger.info("Successfully navigated to admin panel")
+
+            await self._auto_admin_login()
+            
+        except Exception as e:
+            self.logger.error(f"Error navigating to admin panel: {e}")
+            raise ApplicationFormError(f"Error navigating to admin panel: {e}")
+
+    async def _auto_admin_login(self) -> None:
+        """Automatically handle admin login"""
+        self.logger.info("Starting automatic admin login...")
+        
+        try:
+            from pages.admin_login_page import AdminLoginPage
+            
+            admin_login = AdminLoginPage(self.page, self.screenshot_manager, self.logger)
+
+            current_url = self.page.url
+            self.logger.info(f"Current URL for admin login: {current_url}")
+            
+            if "login" not in current_url.lower():
+                self.logger.info("Not on login page, navigating to admin login...")
+                await admin_login.navigate_to_admin_login()
+            
+            await admin_login.login_to_admin_panel()
+            
+            self.logger.info("Automatic admin login completed successfully")
+            
+        except Exception as e:
+            self.logger.error(f"Error during automatic admin login: {e}")
+            raise ApplicationFormError(f"Error during automatic admin login: {e}")
         
     async def _check_if_checkboxes_exist(self) -> bool:
         """Check if the required checkboxes exist on the page"""
@@ -125,7 +210,7 @@ class SummaryFormPage:
         try:
             await self.fill_summary_form()
             
-            from .admin_login_page import AdminLoginPage
+            from pages.admin_login_page import AdminLoginPage
             admin_login = AdminLoginPage(self.page, self.screenshot_manager, self.logger)
             
             await admin_login.navigate_to_admin_login()
@@ -200,36 +285,41 @@ class SummaryFormPage:
             
             current_url = self.page.url
             self.logger.info(f"Current URL after submission: {current_url}")
-            
+
             success_indicators = [
+                ".thank-you-page",
+                "text=Thank you very much, your application has been sent",
+                "text=You will receive a registration confirmation by e-mail",
                 "text=Thank you",
-                "text=Success",
-                "text=Submitted",
                 "text=Danke",
-                "text=Erfolgreich",
-                "text=Gesendet",
                 ".success-message",
-                ".alert-success",
                 ".confirmation"
             ]
             
             found_success = False
             for selector in success_indicators:
                 try:
-                    await self.page.wait_for_selector(selector, timeout=2000)
+                    await self.page.wait_for_selector(selector, timeout=5000)
                     found_success = True
                     self.logger.info(f"Found success indicator: {selector}")
                     break
                 except:
                     continue
+
+            thank_you_elements = await self.page.query_selector_all(".thank-you-page")
+            if thank_you_elements:
+                found_success = True
+                self.logger.info("Found thank you page elements - success confirmed")
+
+            page_content = await self.page.text_content("body")
+            if page_content and "your application has been sent" in page_content.lower():
+                found_success = True
+                self.logger.info("Found success text in page content")
             
             if found_success:
-                self.logger.info("Application submission verified successfully")
+                self.logger.info("Application submission verified successfully - ready for admin navigation")
             else:
-                if "submit" not in current_url.lower() and "application" not in current_url.lower():
-                    self.logger.info("Application likely submitted - navigated away from application page")
-                else:
-                    self.logger.warning("Could not verify application submission success")
+                self.logger.warning("Could not verify application submission success")
             
         except Exception as e:
             self.logger.error(f"Error verifying submission success: {e}")

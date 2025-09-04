@@ -545,7 +545,7 @@ class TestDataFactory:
         adult1 = PersonData(
             salutation="Mr.",
             first_name="John",
-            last_name="TestFamily",
+            last_name="Test",
             date_of_birth="15.06.1985",
             civil_status="Married",
             nationality="Switzerland",
@@ -587,7 +587,7 @@ class TestDataFactory:
         adult2 = PersonData(
             salutation="Ms.",
             first_name="Sarah",
-            last_name="TestFamily",
+            last_name="Test",
             date_of_birth="22.03.1987",
             civil_status="Married",
             nationality="Switzerland",
@@ -629,7 +629,7 @@ class TestDataFactory:
         child = PersonData(
             salutation="Miss",
             first_name="Emma",
-            last_name="TestFamily",
+            last_name="Test",
             date_of_birth="10.09.2015",
             civil_status="Single",
             nationality="Switzerland",
