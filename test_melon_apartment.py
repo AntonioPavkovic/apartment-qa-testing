@@ -12,6 +12,7 @@ from pages.application_form_page import ApplicationFormPage
 from pages.components.wishlist import WishlistComponent
 from pages.people_form_page import PeopleFormPage
 from pages.summary_form_page import SummaryFormPage
+from pages.admin_login_page import AdminLoginPage
 from utils.element_interactor import ElementInteractor
 from utils.logging import TestLogger
 from utils.screenshot_manager import ScreenshotManager
@@ -57,6 +58,8 @@ class TestCompleteApartmentWorkflow:
                 
                 await self._execute_form_completion_phase(application_page)
                 
+                await self._execute_admin_verification_phase(page)
+                
                 result.success = True
                 result.execution_time = time.time() - start_time
                 
@@ -70,6 +73,53 @@ class TestCompleteApartmentWorkflow:
             result.screenshot_paths.append(error_screenshot)
             
             print(f"\n Test failed with exception: {e}")
+            raise
+    
+    async def test_complete_apartment_workflow_without_admin(self, page: Page):
+        """Complete workflow without admin verification (original functionality)"""
+        start_time = time.time()
+        result = TestResult(success=False)
+        
+        try:
+            async with self.logger.log_phase("COMPLETE APARTMENT WORKFLOW TEST (WITHOUT ADMIN)"):
+                apartment_details = await self._execute_apartment_browsing_phase(page)
+                result.apartment_details = apartment_details
+                
+                application_page = await self._execute_application_navigation_phase(page)
+                
+                await self._execute_form_completion_phase(application_page)
+                
+                result.success = True
+                result.execution_time = time.time() - start_time
+                
+                print("\n COMPLETE APARTMENT WORKFLOW COMPLETED SUCCESSFULLY!")
+                
+        except Exception as e:
+            result.error_message = str(e)
+            result.execution_time = time.time() - start_time
+            
+            error_screenshot = await self.screenshot_manager.capture_error(page, "workflow")
+            result.screenshot_paths.append(error_screenshot)
+            
+            print(f"\n Test failed with exception: {e}")
+            raise
+    
+    async def test_admin_login_only(self, page: Page):
+        """Test only the admin login functionality"""
+        try:
+            async with self.logger.log_phase("ADMIN LOGIN ONLY TEST"):
+                admin_login_page = AdminLoginPage(page, self.screenshot_manager, self.logger)
+                
+                await admin_login_page.navigate_to_admin_login()
+                await admin_login_page.login_to_admin_panel()
+                
+                self.logger.info("Admin login test completed successfully")
+                print("\n ADMIN LOGIN TEST COMPLETED SUCCESSFULLY!")
+                
+        except Exception as e:
+            self.logger.error(f"Admin login test failed: {e}")
+            await self.screenshot_manager.capture_error(page, "admin_login_test_failure")
+            print(f"\n Admin login test failed: {e}")
             raise
     
     async def _execute_apartment_browsing_phase(self, page: Page) -> ApartmentDetails:
@@ -161,6 +211,85 @@ class TestCompleteApartmentWorkflow:
             await summary_page.fill_summary_form()
             
             self.logger.info("Summary form and final application submitted successfully")
+    
+    async def _execute_admin_verification_phase(self, page: Page) -> None:
+        """Execute admin login and application verification phase"""
+        async with self.logger.log_phase("PHASE 4: Admin Panel Verification"):
+            
+            context = page.context
+            all_pages = context.pages
+            self.logger.info(f"Found {len(all_pages)} open pages/tabs")
+            
+            admin_page = None
+            
+            for p in all_pages:
+                url = p.url
+                if "mostar.demo.ch.melon.market" in url and "login" in url:
+                    admin_page = p
+                    self.logger.info(f"Found existing admin tab: {url}")
+                    break
+            
+            if not admin_page:
+                admin_page = page
+            
+            admin_login_page = AdminLoginPage(admin_page, self.screenshot_manager, self.logger)
+
+            await admin_login_page.navigate_to_admin_login()
+            await admin_login_page.login_to_admin_panel()
+            
+            await self.screenshot_manager.capture(admin_page, "09_admin_verification_complete", full_page=True)
+            self.logger.info("Admin verification phase completed successfully")
+
+@pytest.mark.asyncio
+async def test_complete_workflow_with_admin():
+    """Pytest function for complete workflow with admin verification"""
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(
+            headless=TestConfig.BROWSER_HEADLESS, 
+            slow_mo=TestConfig.BROWSER_SLOW_MO
+        )
+        page = await browser.new_page()
+        
+        test_suite = TestCompleteApartmentWorkflow()
+        
+        try:
+            await test_suite.test_complete_apartment_workflow(page)
+        finally:
+            await browser.close()
+
+@pytest.mark.asyncio
+async def test_complete_workflow_without_admin():
+    """Pytest function for complete workflow without admin verification"""
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(
+            headless=TestConfig.BROWSER_HEADLESS, 
+            slow_mo=TestConfig.BROWSER_SLOW_MO
+        )
+        page = await browser.new_page()
+        
+        test_suite = TestCompleteApartmentWorkflow()
+        
+        try:
+            await test_suite.test_complete_apartment_workflow_without_admin(page)
+        finally:
+            await browser.close()
+
+@pytest.mark.asyncio
+async def test_admin_login_standalone():
+    """Pytest function for testing admin login only"""
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(
+            headless=TestConfig.BROWSER_HEADLESS, 
+            slow_mo=TestConfig.BROWSER_SLOW_MO
+        )
+        page = await browser.new_page()
+        
+        test_suite = TestCompleteApartmentWorkflow()
+        
+        try:
+            await test_suite.test_admin_login_only(page)
+        finally:
+            await browser.close()
 
 if __name__ == "__main__":
     async def run_complete_workflow_test():
@@ -175,7 +304,7 @@ if __name__ == "__main__":
             test_suite = TestCompleteApartmentWorkflow()
             
             try:
-                print("=== STARTING COMPLETE APARTMENT WORKFLOW TEST ===")
+                print("=== STARTING COMPLETE APARTMENT WORKFLOW TEST WITH ADMIN VERIFICATION ===")
                 await test_suite.test_complete_apartment_workflow(page)
                 
             except Exception as e:
@@ -188,6 +317,6 @@ if __name__ == "__main__":
                 print("\nKeeping browser open for 10 seconds to review results...")
                 await page.wait_for_timeout(10000)
                 await browser.close()
-    
+                
     print("Starting complete apartment workflow test...")
     asyncio.run(run_complete_workflow_test())
