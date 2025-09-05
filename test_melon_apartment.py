@@ -75,7 +75,7 @@ class TestCompleteApartmentWorkflow:
             error_screenshot = await self.screenshot_manager.capture_error(page, "workflow")
             result.screenshot_paths.append(error_screenshot)
             
-            print(f"\n✗ Test failed with exception: {e}")
+            print(f"\n Test failed with exception: {e}")
             raise
     
     async def test_admin_verification_only(self, page: Page):
