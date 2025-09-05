@@ -68,17 +68,6 @@ class Selectors:
     BACK_BUTTON = "div#application-btn-back"
 
     FIRST_NAME_INPUT = "#field-firstname"
-    
-    EMPLOYMENT_STATUS_INPUT = "#field-employment_quota"
-    EMPLOYMENT_STATUS_OPTIONS_CONTAINER = ".mdt-select-options.select-options"
-    EMPLOYMENT_DATE_INPUT = "#field-company_since"
-    EMPLOYMENT_RELATIONSHIP_NOT_TERMINATED = "#employment_terminated-false"
-    EMPLOYMENT_RELATIONSHIP_TERMINATED = "#employment_terminated-true"
-    COMPANY_STREET_INPUT = "#field-company_street_nr"
-    COMPANY_POSTCODE_INPUT = "#field-company_postcode"
-    COMPANY_CITY_INPUT = "#field-company_city"
-    COMPANY_CONTACT_PERSON_INPUT = "#field-company_contact"
-    COMPANY_CONTACT_PHONE_INPUT = "#field-company_contact_phone"
 
     APARTMENT_ROWS = [
         "tr[data-apartment-id]",

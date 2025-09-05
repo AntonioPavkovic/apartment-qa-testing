@@ -82,11 +82,9 @@ class AdminApplicationsPage:
                 self.logger.info(f"Selector failed: {selector} - {e}")
                 continue
         
-        # JavaScript fallback if CSS selectors fail
         self.logger.info("CSS selectors failed, trying JavaScript approach...")
         try:
             await self.page.evaluate("""
-                // Find Appointments link by href first
                 const appointmentLinks = document.querySelectorAll('a[href="/viewing-appointments"]');
                 if (appointmentLinks.length > 0) {
                     console.log('Found Appointments link, clicking...');
@@ -94,7 +92,6 @@ class AdminApplicationsPage:
                     return;
                 }
                 
-                // Find Applications link by href
                 const appLinks = document.querySelectorAll('a[href="/applications"]');
                 if (appLinks.length > 0) {
                     console.log('Found Applications link, clicking...');
@@ -102,7 +99,6 @@ class AdminApplicationsPage:
                     return;
                 }
                 
-                // Find by text content - try both
                 const allElements = document.querySelectorAll('*');
                 for (const el of allElements) {
                     if (el.textContent && (el.textContent.trim() === 'Appointments' || el.textContent.trim() === 'Applications')) {

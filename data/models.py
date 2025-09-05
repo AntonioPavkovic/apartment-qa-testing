@@ -120,19 +120,9 @@ class PersonData:
     relocation_last_3_years: Optional[bool] = None
     community_member: Optional[bool] = None
 
-    current_landlord: Optional[str] = None
-    landlord_contact_person: Optional[str] = None
-    landlord_contact_phone: Optional[str] = None
-    landlord_contact_email: Optional[str] = None
-    monthly_gross_rent: Optional[int] = None
-    contract_terminated_by: Optional[str] = None
-    
-
     education: Optional[str] = None
     employment_status: Optional[str] = "Retired"
-    gross_annual_income: Optional[str] = None
     annual_taxable_income: Optional[str] = None
-    taxable_assets: Optional[str] = None
     
     company_start_date: Optional[str] = None
     employment_terminated: Optional[bool] = False

@@ -167,19 +167,15 @@ class HouseholdFormPage:
     async def _select_dropdown_option(self, dropdown_selector: str, input_selector: str, value: str) -> None:
         """Select option from dropdown by clicking on the dropdown item"""
         try:
-            # Click dropdown to open it
             await self.page.wait_for_selector(dropdown_selector, timeout=TestConfig.DEFAULT_TIMEOUT)
             await self.page.click(dropdown_selector)
             await self.page.wait_for_timeout(1000)
             
-            # Wait for dropdown items to appear
             await self.page.wait_for_selector("ul.select-dropdown-items-wrapper li", state="visible", timeout=TestConfig.DEFAULT_TIMEOUT)
             
-            # Try to select by data-value attribute instead of ID (more reliable)
             data_value = self._map_value_to_data_value(value)
             
             if data_value:
-                # Use data-value attribute selector instead of ID
                 item_selector = f'li[data-value="{data_value}"]'
                 await self.page.wait_for_selector(item_selector, timeout=TestConfig.DEFAULT_TIMEOUT)
                 await self.page.click(item_selector)
@@ -187,7 +183,6 @@ class HouseholdFormPage:
                 
                 self.logger.info(f"Selected dropdown option: {value} (data-value: {data_value})")
             else:
-                # Fallback: try to find by text content
                 await self._select_by_text_content(value)
                 
         except Exception as e:
@@ -197,7 +192,6 @@ class HouseholdFormPage:
     def _map_value_to_data_value(self, value: str) -> str:
         """Map friendly values to actual dropdown data-value attributes"""
         
-        # Standardize the input value for mapping
         standardized_value = value.strip().lower().replace(' ', '_').replace('/', '_').replace('-', '_').replace('__', '_')
 
         household_type_mapping = {
@@ -260,28 +254,24 @@ class HouseholdFormPage:
         try:
             self.logger.info(f"Trying fallback text selection for: {value}")
             
-            # Get all visible dropdown items
             dropdown_items = await self.page.query_selector_all("li.dropdown-item")
             
             for item in dropdown_items:
                 if await item.is_visible():
                     item_text = await item.text_content()
                     if item_text and item_text.strip():
-                        # Check for exact match first
                         if value.lower().strip() == item_text.lower().strip():
                             await item.click()
                             await self.page.wait_for_timeout(500)
                             self.logger.info(f"Selected dropdown option by exact text match: {value}")
                             return
                         
-                        # Check for partial match
                         if value.lower() in item_text.lower():
                             await item.click()
                             await self.page.wait_for_timeout(500)
                             self.logger.info(f"Selected dropdown option by partial text match: {value} -> {item_text}")
                             return
             
-            # If no match found, list available options for debugging
             available_options = []
             for item in dropdown_items:
                 if await item.is_visible():

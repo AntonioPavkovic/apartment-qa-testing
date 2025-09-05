@@ -139,7 +139,7 @@ class SummaryFormPage:
             raise ApplicationFormError(f"Error completing summary form and admin navigation: {e}")
 
     async def _navigate_to_admin_panel(self) -> None:
-        """Open admin panel in a new tab after confirmation"""
+        """Open admin panel in a new tab and log in automatically"""
         self.logger.info("Opening admin panel in a new tab...")
 
         try:
@@ -171,7 +171,6 @@ class SummaryFormPage:
         except Exception as e:
             self.logger.error(f"Error opening admin panel in new tab: {e}")
             raise ApplicationFormError(f"Error opening admin panel in new tab: {e}")
-
 
     async def _auto_admin_login(self) -> None:
         """Automatically handle admin login"""

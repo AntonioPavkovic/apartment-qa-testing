@@ -110,8 +110,6 @@ class ApartmentListingPage:
         try:
             text_content = await apartment.text_content() or ""
             details = ApartmentDetails(full_text=text_content.strip())
-            
-            # Extract specific details using regex
             self._extract_room_details(text_content, details)
             self._extract_price_details(text_content, details)
             self._extract_size_details(text_content, details)

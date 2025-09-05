@@ -57,7 +57,6 @@ class PeopleFormPage:
                 await self._fill_person_data(people_data[2], person_index=2)
                 await self._save_current_person()
             
-            # Add navigation to summary page
             await self._navigate_to_summary()
             
             await self.screenshot_manager.capture(self.page, "people_form_filled", full_page=True)
@@ -72,7 +71,6 @@ class PeopleFormPage:
         self.logger.info("Looking for Continue/Next button to navigate to summary...")
         
         try:
-            # Look for navigation buttons
             continue_selectors = [
                 "#application-btn-next",
                 ".btn:has-text('Continue')",
@@ -94,10 +92,10 @@ class PeopleFormPage:
                 await continue_button.scroll_into_view_if_needed()
                 await continue_button.click()
                 self.logger.info("Clicked continue button to navigate to summary")
-                await self.page.wait_for_timeout(3000)  # Wait for navigation
+                await self.page.wait_for_timeout(3000)
             else:
                 self.logger.warning("No continue button found - summary page may load automatically")
-                await self.page.wait_for_timeout(2000)  # Wait in case it loads automatically
+                await self.page.wait_for_timeout(2000)
                 
         except Exception as e:
             self.logger.warning(f"Could not find continue button: {e}")
@@ -297,7 +295,9 @@ class PeopleFormPage:
             await self._fill_general_info(person)
             await self._fill_contact_info(person)
             await self._fill_housing_situation(person)
-            await self._fill_employment_info(person)
+            if person.employment_status:
+                await self._select_dropdown_by_id("field-employment_quota", person.employment_status)
+        
             await self._fill_creditworthiness(person)
             await self._handle_documents(person)
             await self._handle_agreement_checkbox()
@@ -390,29 +390,6 @@ class PeopleFormPage:
             self.logger.error(f"Error filling general info: {e}")
             raise
     
-    async def _fill_employment_info(self, person: PersonData) -> None:
-        """Fill employment information section"""
-        self.logger.info("Filling employment information...")
-        
-        try:
-            if person.education:
-                await self._select_dropdown_by_id("field-highest_education", person.education)
-            
-            if person.employment_status:
-                await self._select_dropdown_by_id("field-employment_quota", person.employment_status)
-            
-            if person.gross_annual_income:
-                await self._select_dropdown_by_id("field-income_range", person.gross_annual_income)
-
-            if person.annual_taxable_income:
-                await self.interactor.fill_field_safely("#field-income_taxable_net", person.annual_taxable_income)
-
-            if person.taxable_assets:
-                await self.interactor.fill_field_safely("#field-wealth_taxable_net", person.taxable_assets)
-                
-        except Exception as e:
-            self.logger.error(f"Error filling employment info: {e}")
-            raise
     
     async def _fill_creditworthiness(self, person: PersonData) -> None:
         """Fill creditworthiness section"""
@@ -650,90 +627,6 @@ class PeopleFormPage:
         except Exception as e:
             self.logger.error(f"Error filling housing situation: {e}")
             raise
-
-    async def _fill_tenancy_info(self, person: PersonData) -> None:
-        """Fills tenancy-specific required fields"""
-        self.logger.info("Filling tenancy-specific fields...")
-        
-        await self.page.wait_for_selector("#field-landlord")
-        await self.page.wait_for_timeout(500)
-        
-        try:
-            if person.current_landlord:
-                await self.interactor.fill_field_safely("#field-landlord", person.current_landlord)
-            
-            if person.landlord_contact_person:
-                await self.interactor.fill_field_safely("#field-landlord_contact", person.landlord_contact_person)
-                
-            if person.landlord_contact_phone:
-                await self.interactor.fill_field_safely("#field-landlord_contact_phone", person.landlord_contact_phone)
-            
-            if person.landlord_contact_email:
-                await self.interactor.fill_field_safely("#field-landlord_contact_email", person.landlord_contact_email)
-                
-            if person.monthly_gross_rent:
-                await self.interactor.fill_field_safely("#field-previous_rent", str(person.monthly_gross_rent))
-                
-            if person.contract_terminated_by:
-                if person.contract_terminated_by == "Uncanceled":
-                    await self.page.click("#notice_of_termination-notyet")
-                elif person.contract_terminated_by == "Tenant":
-                    await self.page.click("#notice_of_termination-tenant")
-                elif person.contract_terminated_by == "Landlord":
-                    await self.page.click("#notice_of_termination-landlord")
-                self.logger.info(f"Selected '{person.contract_terminated_by}' for contract termination.")
-                
-        except Exception as e:
-            self.logger.error(f"Error filling tenancy fields: {e}")
-            raise ApplicationFormError(f"Could not fill tenancy information: {e}")
-
-    async def _fill_employment(self, person: PersonData) -> None:
-        """
-        Fills out the employment information section for a person.
-        """
-        self.logger.info("Filling employment details...")
-        try:
-            employment_data = person.employment
-            
-            if employment_data.employment_status:
-                await self.interactor.click_and_select_from_dropdown(
-                    selector=Selectors.EMPLOYMENT_STATUS_INPUT,
-                    option_text=employment_data.employment_status,
-                    options_container_selector=Selectors.EMPLOYMENT_STATUS_OPTIONS_CONTAINER
-                )
-
-            if employment_data.start_date:
-                formatted_date = employment_data.start_date.strftime("%d.%m.%Y")
-                await self.interactor.fill_text(Selectors.EMPLOYMENT_DATE_INPUT, formatted_date)
-
-            if employment_data.is_terminated is not None:
-                if employment_data.is_terminated:
-                    await self.interactor.click_element(Selectors.EMPLOYMENT_RELATIONSHIP_TERMINATED)
-                else:
-                    await self.interactor.click_element(Selectors.EMPLOYMENT_RELATIONSHIP_NOT_TERMINATED)
-            
-            if employment_data.street_and_number:
-                await self.interactor.fill_text(Selectors.COMPANY_STREET_INPUT, employment_data.street_and_number)
-            if employment_data.post_code:
-                await self.interactor.fill_text(Selectors.COMPANY_POSTCODE_INPUT, str(employment_data.post_code))
-            if employment_data.city:
-                await self.interactor.fill_text(Selectors.COMPANY_CITY_INPUT, employment_data.city)
-
-            if employment_data.contact_person:
-                await self.interactor.fill_text(Selectors.COMPANY_CONTACT_PERSON_INPUT, employment_data.contact_person)
-            if employment_data.contact_phone:
-                await self.interactor.fill_text(Selectors.COMPANY_CONTACT_PHONE_INPUT, employment_data.contact_phone)
-
-            self.logger.info("Employment details filled successfully.")
-
-        except PlaywrightTimeoutError as e:
-            self.logger.error(f"Timeout while filling employment form: {e}")
-            await self.screenshot_manager.capture_error(self.page, "employment_form_timeout")
-            raise ApplicationFormError(f"Timeout while filling employment form: {e}")
-        except Exception as e:
-            self.logger.error(f"Error filling employment form: {e}")
-            await self.screenshot_manager.capture_error(self.page, "employment_form_error")
-            raise ApplicationFormError(f"Error filling employment form: {e}")
 
     async def _handle_documents(self, person: PersonData) -> None:
         """Handle document upload sections"""
