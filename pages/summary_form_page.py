@@ -139,28 +139,39 @@ class SummaryFormPage:
             raise ApplicationFormError(f"Error completing summary form and admin navigation: {e}")
 
     async def _navigate_to_admin_panel(self) -> None:
-        """Navigate directly to admin panel after confirmation"""
-        self.logger.info("Automatically navigating to admin panel...")
-        
+        """Open admin panel in a new tab after confirmation"""
+        self.logger.info("Opening admin panel in a new tab...")
+
         try:
             await self.screenshot_manager.capture(self.page, "08_success_page_before_admin", full_page=True)
-            
+
             admin_url = "https://mostar.demo.ch.melon.market/"
-            self.logger.info(f"Navigating from success page to admin URL: {admin_url}")
-            await self.page.goto(admin_url)
+            self.logger.info(f"Opening new tab for admin URL: {admin_url}")
 
-            await self.page.wait_for_load_state('domcontentloaded', timeout=15000)
-            await self.page.wait_for_timeout(3000)
+            async with self.page.context.expect_page() as new_page_info:
+                await self.page.evaluate(
+                    "url => window.open(url, '_blank')",
+                    admin_url
+                )
 
-            await self.screenshot_manager.capture(self.page, "09_auto_admin_navigation", full_page=True)
-            
-            self.logger.info("Successfully navigated to admin panel")
+            new_page = await new_page_info.value
+            await new_page.wait_for_load_state("domcontentloaded", timeout=15000)
+            await self.screenshot_manager.capture(new_page, "09_auto_admin_navigation", full_page=True)
 
-            await self._auto_admin_login()
-            
+            self.logger.info("Successfully opened admin panel in new tab")
+
+            from pages.admin_login_page import AdminLoginPage
+            admin_login = AdminLoginPage(new_page, self.screenshot_manager, self.logger)
+
+            await admin_login.navigate_to_admin_login()
+            await admin_login.login_to_admin_panel()
+
+            self.logger.info("Admin login flow completed successfully")
+
         except Exception as e:
-            self.logger.error(f"Error navigating to admin panel: {e}")
-            raise ApplicationFormError(f"Error navigating to admin panel: {e}")
+            self.logger.error(f"Error opening admin panel in new tab: {e}")
+            raise ApplicationFormError(f"Error opening admin panel in new tab: {e}")
+
 
     async def _auto_admin_login(self) -> None:
         """Automatically handle admin login"""
