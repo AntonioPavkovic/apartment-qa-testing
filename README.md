@@ -73,11 +73,6 @@ For focused testing of administrative features with verification and validation:
 python test_admin_only.py
 ```
 
-This test suite covers:
-- Admin login functionality
-- User management features  
-- Administrative dashboard validation
-- Permission-based access controls
 
 #### Comprehensive Application Tests
 
@@ -86,22 +81,6 @@ For complete end-to-end testing of the entire apartment application:
 ```bash
 python test_melon_apartment.py
 ```
-
-This comprehensive suite includes:
-- User registration and authentication
-- Apartment listing and search functionality
-- Booking and reservation processes
-- Payment processing workflows
-- Admin and user role interactions
-
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
 
 
 ## Author
