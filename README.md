@@ -91,3 +91,103 @@ python test_melon_apartment.py
 ## Acknowledgments
 
 - Built with [Playwright](https://playwright.dev/) for reliable browser automation
+
+
+## BUGS FOUND WHILE MANUALLY TESTING
+
+### Bug #1: Infant Counted as Adult Applicant
+**Severity:** Medium
+**Category:** Data Validation / Business Logic
+
+**Steps to Reproduce:**
+1. Navigate to apartment application form
+2. Fill out personal information for applicant
+3. Set birth date to current date minus 2-3 days (making applicant ~0 years old)
+4. Complete and submit application
+5. Check admin panel application details
+
+**Expected Result:** 
+- System should reject birth date that makes applicant under 18
+- OR system should not count infants in "Number of adults" field
+- Should show validation error for invalid age
+
+**Actual Result:** 
+- Application accepts infant birth date
+- Counts infant as "1 adult" 
+- Shows "0 years old" but still classifies as adult
+- No validation error displayed
+
+**Impact:** 
+- Could lead to invalid rental applications
+- Confusion for property managers
+- Potential legal compliance issues
+
+**Suggested Fix:**
+- Add age validation (minimum 18 years for primary applicant)
+- Separate counting logic for adults vs children vs infants
+- Clear error message for invalid birth dates
+
+![App Screenshot](./manualt_testing_images/potential_issue_1.JPG)
+
+
+### Bug #2: Multiple adults in a single household
+
+**Severity:** Medium
+**Category:** Data Validation / Business Logic
+
+**Steps to Reproduce:**
+1. Navigate to apartment application form
+2. Fill out personal information for applicant
+3. Select a single person household
+4. Add multiple adults
+5. Check admin panel application details
+
+**Expected Result:** 
+- System should reject the second adult
+
+
+**Actual Result:** 
+- Application accepts both adults
+
+![App Screenshot](./manualt_testing_images/potential_issue_2.JPG)
+![App Screenshot](./manualt_testing_images/potential_issue_3.JPG)
+
+### Bug #3: Birth date in the future (2029) but living in Switzerland in the current year
+
+**Severity:** Medium
+**Category:** Data Validation / Business Logic
+
+**Steps to Reproduce:**
+1. Navigate to apartment application form
+2. Fill out personal information for applicant
+3. Select a single person household
+4. Add the birth date in the future and living in switzerland since to the current year
+5. Check admin panel application details
+
+**Expected Result:** 
+- System should reject the birth dates in the future
+
+
+**Actual Result:** 
+
+![App Screenshot](./manualt_testing_images/potential_issue_4.JPG)
+
+### Bug #4: Application accepts numbers for street name and city name
+
+**Severity:** Medium
+**Category:** Data Validation / Business Logic
+
+**Steps to Reproduce:**
+1. Navigate to apartment application form
+2. Fill out personal information for applicant
+3. Select a single person household
+4. Fill out the city name and street name as numbers
+5. Check admin panel application details
+
+**Expected Result:** 
+- System should reject number for city and street name
+
+
+**Actual Result:** 
+
+![App Screenshot](./manualt_testing_images/potential_issue_5.JPG)
