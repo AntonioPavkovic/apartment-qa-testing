@@ -167,9 +167,6 @@ python test_melon_apartment.py
 **Expected Result:** 
 - System should reject the birth dates in the future
 
-
-**Actual Result:** 
-
 ![App Screenshot](./manualt_testing_images/potential_issue_4.JPG)
 
 ### Bug #4: Application accepts numbers for street name and city name
@@ -186,8 +183,5 @@ python test_melon_apartment.py
 
 **Expected Result:** 
 - System should reject number for city and street name
-
-
-**Actual Result:** 
 
 ![App Screenshot](./manualt_testing_images/potential_issue_5.JPG)
