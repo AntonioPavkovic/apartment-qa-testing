@@ -569,8 +569,12 @@ async def test_admin_verification_only():
             await browser.close()
 
 if __name__ == "__main__":
+    main_logger = TestLogger("MainEntryPoint")
+    
     async def run_complete_e2e_test():
         """Run complete end-to-end test including admin verification"""
+        main_logger.info("Initializing complete E2E test...")
+        
         async with async_playwright() as p:
             browser = await p.chromium.launch(
                 headless=TestConfig.BROWSER_HEADLESS, 
@@ -578,25 +582,31 @@ if __name__ == "__main__":
             )
             page = await browser.new_page()
             
+            main_logger.info(f"Browser launched - Headless: {TestConfig.BROWSER_HEADLESS}")
+            
             test_suite = TestCompleteApartmentWorkflow()
             
             try:
-                print("=== STARTING COMPLETE E2E APARTMENT WORKFLOW TEST ===")
+                main_logger.info("=== STARTING COMPLETE E2E APARTMENT WORKFLOW TEST ===")
                 await test_suite.test_complete_apartment_workflow(page)
+                main_logger.info("E2E workflow test completed successfully")
                 
             except Exception as e:
-                print(f"\n✗ E2E WORKFLOW TEST FAILED: {e}")
+                main_logger.error(f"E2E WORKFLOW TEST FAILED: {e}")
                 import traceback
-                print(traceback.format_exc())
+                main_logger.error(traceback.format_exc())
             
             finally:
-                print("Screenshots saved in screenshots/ directory")
-                print("\nKeeping browser open for 10 seconds to review results...")
+                main_logger.info("Screenshots saved in screenshots/ directory")
+                main_logger.info("Keeping browser open for 10 seconds to review results...")
                 await page.wait_for_timeout(10000)
                 await browser.close()
+                main_logger.info("Browser closed")
     
     async def run_admin_verification_test():
         """Run only admin verification test (login + table check)"""
+        main_logger.info("Initializing admin verification test...")
+        
         async with async_playwright() as p:
             browser = await p.chromium.launch(
                 headless=TestConfig.BROWSER_HEADLESS, 
@@ -604,22 +614,26 @@ if __name__ == "__main__":
             )
             page = await browser.new_page()
             
+            main_logger.info(f"Browser launched - Headless: {TestConfig.BROWSER_HEADLESS}")
+            
             test_suite = TestCompleteApartmentWorkflow()
             
             try:
-                print("=== STARTING ADMIN VERIFICATION TEST ===")
+                main_logger.info("=== STARTING ADMIN VERIFICATION TEST ===")
                 await test_suite.test_admin_verification_only(page)
+                main_logger.info("Admin verification test completed successfully")
                 
             except Exception as e:
-                print(f"\n ADMIN VERIFICATION TEST FAILED: {e}")
+                main_logger.error(f"ADMIN VERIFICATION TEST FAILED: {e}")
                 import traceback
-                print(traceback.format_exc())
+                main_logger.error(traceback.format_exc())
             
             finally:
-                print("Screenshots saved in screenshots/ directory")
-                print("\nKeeping browser open for 10 seconds to review results...")
+                main_logger.info("Screenshots saved in screenshots/ directory")
+                main_logger.info("Keeping browser open for 10 seconds to review results...")
                 await page.wait_for_timeout(10000)
                 await browser.close()
+                main_logger.info("Browser closed")
 
-    print("Running complete end-to-end workflow test...")
+    main_logger.info("Starting apartment testing automation suite...")
     asyncio.run(run_complete_e2e_test())

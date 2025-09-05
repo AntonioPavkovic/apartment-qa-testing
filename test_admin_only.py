@@ -65,8 +65,7 @@ class AdminVerificationTest:
                         for error in table_summary['errors']:
                             self.logger.error(f"Table analysis error: {error}")
 
-                async with self.logger.log_phase("Applicant Search and Verification", 
-                                                applicant_email=main_applicant.email):
+                async with self.logger.log_phase("Applicant Search and Verification", applicant_email=main_applicant.email):
                     self.logger.info(f"Searching for test applicant: {main_applicant.first_name} {main_applicant.last_name}")
                     verification_results = await admin_apps_page.click_applicant_row_and_verify_details(
                         test_family_data,
@@ -168,8 +167,7 @@ class AdminVerificationTest:
                     for error in table_summary['errors']:
                         logger.error(f"Table analysis error: {error}")
 
-            async with logger.log_phase("Applicant Search and Verification", 
-                                        applicant_email=main_applicant.email):
+            async with logger.log_phase("Applicant Search and Verification", applicant_email=main_applicant.email):
                 logger.info(f"Searching for test applicant: {main_applicant.first_name} {main_applicant.last_name}")
                 verification_results = await admin_apps_page.click_applicant_row_and_verify_details(
                     family_data,
