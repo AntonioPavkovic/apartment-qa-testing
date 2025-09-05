@@ -185,3 +185,25 @@ python test_melon_apartment.py
 - System should reject number for city and street name
 
 ![App Screenshot](./manualt_testing_images/potential_issue_5.JPG)
+
+### Bug #4: Move in date set in the past (2024) while looking for the apartment in 2025 
+### Potential issue with street name and Postal number
+
+**Severity:** Medium
+**Category:** Data Validation / Business Logic
+
+**Steps to Reproduce:**
+1. Navigate to apartment application form
+2. Fill out personal information for applicant
+3. Select a single person household
+4. Add move in date in the past, some random number for the Postal Code and Street name
+5. Check admin panel application details
+
+**Expected Result:** 
+- System should reject the adult
+
+
+**Actual Result:** 
+- Application accepts the adult
+
+![App Screenshot](./manualt_testing_images/potential_issue_6.JPG)
