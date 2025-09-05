@@ -2,6 +2,7 @@ from playwright.async_api import Page, ElementHandle
 from typing import List, Optional
 import random
 import re
+import asyncio
 
 from config.test_config import Selectors, TestConfig
 from data.models import ApartmentDetails
@@ -76,15 +77,85 @@ class ApartmentListingPage:
             clickable_apartments = apartments
         
         selected = random.choice(clickable_apartments)
+
+        await self._ensure_apartment_fully_visible(selected)
         await self._highlight_selected_apartment(selected)
         
         self.logger.info(f"Selected apartment from {len(clickable_apartments)} clickable options")
         await self.screenshot_manager.capture(self.page, "02_apartment_selected")
         return selected
     
+    async def _ensure_apartment_fully_visible(self, apartment: ElementHandle) -> None:
+        """Ensure the apartment and its action buttons are fully visible in viewport"""
+        try:
+            self.logger.info("Ensuring apartment is fully visible...")
+
+            await apartment.scroll_into_view_if_needed()
+            await asyncio.sleep(1)
+            
+            apartment_box = await apartment.bounding_box()
+            if not apartment_box:
+                self.logger.warning("Could not get apartment bounding box")
+                return
+            
+            viewport_size = self.page.viewport_size
+            if not viewport_size:
+                self.logger.warning("Could not get viewport size")
+                return
+
+            apartment_bottom = apartment_box['y'] + apartment_box['height']
+            viewport_bottom = viewport_size['height']
+            
+            if apartment_bottom > viewport_bottom * 0.7:
+                self.logger.info("Apartment is near bottom of screen, scrolling up to center it")
+                
+                scroll_offset = apartment_bottom - (viewport_bottom * 0.5)
+                
+                await self.page.evaluate(f"window.scrollBy(0, {scroll_offset})")
+                await asyncio.sleep(1)
+
+                await apartment.scroll_into_view_if_needed()
+                await asyncio.sleep(0.5)
+
+            await self._ensure_apply_button_visible(apartment)
+            
+        except Exception as e:
+            self.logger.warning(f"Error ensuring apartment visibility: {e}")
+            await apartment.scroll_into_view_if_needed()
+    
+    async def _ensure_apply_button_visible(self, apartment: ElementHandle) -> None:
+        """Ensure the apply button for this apartment is visible"""
+        try:
+            apply_buttons = await apartment.query_selector_all("span.bewerben, .apply-button, .wishlist-button")
+            
+            for button in apply_buttons:
+                if await button.is_visible():
+                    button_box = await button.bounding_box()
+                    if button_box:
+                        viewport_size = self.page.viewport_size
+                        if viewport_size:
+                            if button_box['y'] + button_box['height'] > viewport_size['height']:
+                                self.logger.info("Apply button is below viewport, scrolling up")
+                                scroll_amount = (button_box['y'] + button_box['height']) - viewport_size['height'] + 50
+                                await self.page.evaluate(f"window.scrollBy(0, -{scroll_amount})")
+                                await asyncio.sleep(0.5)
+
+                            elif button_box['y'] < 0:
+                                self.logger.info("Apply button is above viewport, scrolling down")
+                                scroll_amount = abs(button_box['y']) + 50
+                                await self.page.evaluate(f"window.scrollBy(0, {scroll_amount})")
+                                await asyncio.sleep(0.5)
+                    break
+                    
+        except Exception as e:
+            self.logger.error(f"Error checking apply button visibility: {e}")
+    
     async def _has_clickable_actions(self, apartment: ElementHandle) -> bool:
         """Check if apartment has clickable wishlist/apply buttons"""
         try:
+            await apartment.scroll_into_view_if_needed()
+            await asyncio.sleep(0.5)
+            
             wishlist_elements = await apartment.query_selector_all("span.bewerben")
             for element in wishlist_elements:
                 if await element.is_visible():
@@ -99,9 +170,104 @@ class ApartmentListingPage:
         """Highlight the selected apartment visually"""
         await apartment.evaluate("el => el.style.backgroundColor = 'lightblue'")
         await apartment.evaluate("el => el.style.border = '2px solid blue'")
-        await self.page.wait_for_timeout(1000)
+        await asyncio.sleep(1)
+        
         await apartment.scroll_into_view_if_needed()
-        await self.page.wait_for_timeout(500)
+        await asyncio.sleep(0.5)
+    
+    async def click_apply_button(self, apartment: ElementHandle) -> bool:
+        """Click the apply button for the selected apartment with improved visibility handling"""
+        try:
+            self.logger.info("Looking for apply button...")
+            
+            await self._ensure_apartment_fully_visible(apartment)
+            
+            apply_selectors = [
+                "span.bewerben:not(.disabled)",
+                ".apply-button:not(.disabled)",
+                ".wishlist-button:not(.disabled)",
+                "button:has-text('Apply'):not(.disabled)",
+                "button:has-text('Bewerben'):not(.disabled)"
+            ]
+            
+            for selector in apply_selectors:
+                try:
+                    buttons = await apartment.query_selector_all(selector)
+                    for button in buttons:
+                        if await button.is_visible():
+                            await button.scroll_into_view_if_needed()
+                            await asyncio.sleep(0.5)
+
+                            button_box = await button.bounding_box()
+                            if button_box:
+                                self.logger.info(f"Found clickable apply button with selector: {selector}")
+                                await button.click()
+                                await asyncio.sleep(1)
+                                return True
+                                
+                except Exception as e:
+                    self.logger.error(f"Apply button selector failed: {selector} - {e}")
+                    continue
+            
+            self.logger.warning("No clickable apply button found")
+            return False
+            
+        except Exception as e:
+            self.logger.error(f"Error clicking apply button: {e}")
+            return False
+    
+    async def smart_scroll_to_reveal_elements(self) -> None:
+        """Smart scrolling to reveal hidden elements at page bottom"""
+        try:
+            self.logger.info("Performing smart scroll to reveal hidden elements...")
+            
+            page_metrics = await self.page.evaluate("""
+                () => ({
+                    scrollHeight: document.documentElement.scrollHeight,
+                    clientHeight: document.documentElement.clientHeight,
+                    scrollTop: window.pageYOffset || document.documentElement.scrollTop
+                })
+            """)
+            
+            if page_metrics['scrollTop'] + page_metrics['clientHeight'] > page_metrics['scrollHeight'] * 0.8:
+                scroll_up_amount = page_metrics['clientHeight'] * 0.3
+                self.logger.info(f"Near page bottom, scrolling up by {scroll_up_amount}px")
+                await self.page.evaluate(f"window.scrollBy(0, -{scroll_up_amount})")
+                await asyncio.sleep(1)
+            
+        except Exception as e:
+            self.logger.error(f"Error in smart scroll: {e}")
+    
+    async def find_and_prepare_apartment_for_interaction(self, apartments: List[ElementHandle]) -> ElementHandle:
+        """Find an apartment and prepare it for interaction (clicking apply button)"""
+        self.logger.info("Finding and preparing apartment for interaction...")
+        
+        for apartment in apartments:
+            try:
+                await apartment.scroll_into_view_if_needed()
+                await asyncio.sleep(0.5)
+                
+                if await self._has_clickable_actions(apartment):
+                    await self._ensure_apartment_fully_visible(apartment)
+                    
+                    apply_buttons = await apartment.query_selector_all("span.bewerben:not(.disabled)")
+                    for button in apply_buttons:
+                        if await button.is_visible():
+                            button_box = await button.bounding_box()
+                            if button_box: 
+                                self.logger.info("Found apartment with accessible apply button")
+                                await self._highlight_selected_apartment(apartment)
+                                return apartment
+                
+            except Exception as e:
+                self.logger.error(f"Error preparing apartment: {e}")
+                continue
+
+        self.logger.info("No apartments with immediately visible apply buttons, selecting random")
+        selected = random.choice(apartments)
+        await self._ensure_apartment_fully_visible(selected)
+        await self._highlight_selected_apartment(selected)
+        return selected
     
     async def extract_apartment_details(self, apartment: ElementHandle) -> ApartmentDetails:
         """Extract apartment details from the selected element"""
