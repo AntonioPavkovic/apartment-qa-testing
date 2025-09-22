@@ -12,8 +12,8 @@ class AdminLoginPage:
         self.screenshot_manager = screenshot_manager
         self.logger = logger
         self.admin_url = "https://mostar.demo.ch.melon.market/"
-        self.username = "antonio"
-        self.password = "8W7suY9F2$kq"
+        self.username = "username"
+        self.password = "password"
     
     async def navigate_to_admin_login(self) -> None:
         """Navigate to the admin login page"""

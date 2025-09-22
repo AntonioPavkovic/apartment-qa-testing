@@ -2,11 +2,6 @@ from dataclasses import dataclass, field
 from typing import Optional, Dict, Any
 from enum import Enum
 
-class ApplicationStatus(Enum):
-    PENDING = "pending"
-    SUBMITTED = "submitted"
-    ERROR = "error"
-
 @dataclass
 class ApartmentDetails:
     """Data model for apartment information"""
